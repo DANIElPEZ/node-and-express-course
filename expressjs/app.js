@@ -6,6 +6,8 @@ import path from 'path';
 import { validateUser } from './utils/validator.js';
 import { logger } from './middlewares/logger.js';
 import { errorHandler } from './middlewares/errorHandler.js';
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient(); // manejador de base de datos (orm)
 
 dotenv.config();
 const port = process.env.PORT || 3000;
@@ -122,6 +124,15 @@ app.delete('/users/:id', (req, res) => {
 
 app.get('/error', (req, res, next)=>{
      next(new Error('error intencional'));
+});
+
+app.get('/db-users', async (req, res)=>{
+     try {
+          const users = await prisma.user.findMany();
+          res.json(users);
+     } catch (error) {
+          res.status(500).json({ error: "Error al comunicarse con la base de datos" });
+     }
 });
 
 app.listen(port, () => {

@@ -3,10 +3,13 @@ import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 import fs from 'fs';
 import path from 'path';
-import { validateUser } from './utils/validator.js';
-import { logger } from './middlewares/logger.js';
-import { errorHandler } from './middlewares/errorHandler.js';
+import { validateUser } from './src/utils/validator.js';
+import { logger } from './src/middlewares/logger.js';
+import { errorHandler } from './src/middlewares/errorHandler.js';
+import { authenticateToken } from './src/middlewares/auth.js';
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 const prisma = new PrismaClient(); // manejador de base de datos (orm)
 
 dotenv.config();
@@ -122,16 +125,57 @@ app.delete('/users/:id', (req, res) => {
      });
 });
 
+// implementacion de error de midleware
 app.get('/error', (req, res, next)=>{
      next(new Error('error intencional'));
 });
 
+//conexion a base de datos
 app.get('/db-users', async (req, res)=>{
      try {
           const users = await prisma.user.findMany();
           res.json(users);
      } catch (error) {
           res.status(500).json({ error: "Error al comunicarse con la base de datos" });
+     }
+});
+
+//implementacion de jwt
+app.get('/protected', authenticateToken, (req, res)=>{
+     res.send('ruta protegida');
+});
+
+app.post('/register',async (req, res)=>{
+     const {email, password, name}=req.body;
+     const hashedPassword = await bcrypt.hash(password, 10);
+     try {
+          const newUser = await prisma.user.create({
+               data: {
+                    email: email,
+                    password: hashedPassword,
+                    name: name,
+                    role:'USER'
+               }
+          });
+          res.status(201).json({message:'Usuario registrado correctamente'});
+     } catch (error) {
+          res.status(500).json({ error: "Error al registrar el usuario" });
+     }
+});
+
+app.post('/login', async (req, res)=>{
+     const {email, password}= req.body;
+     try {
+          const getUser = await prisma.user.findUnique({
+               where:{ email: email}
+          });
+          const isValidPassword = await bcrypt.compare(password, getUser.password); // compara la contraseña ingresada con la almacenada
+          if (!getUser && !isValidPassword) return res.status(400).json({ error: "Usuario o contraseña incorrecto" });
+
+          const token = jwt.sign({ id: getUser.id, role: getUser.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+          res.json({ token });
+     } catch (error) {
+          return res.status(500).json({ error: "Error al iniciar sesión" });
      }
 });
 

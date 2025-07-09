@@ -18,4 +18,21 @@ model User {
   email String @unique
   password String
   role Role
+  appointments Appointment[]
+}
+
+model Appointment {
+  id          Int       @id @default(autoincrement())
+  date        DateTime
+  userId      Int
+  timeBlockId Int
+  timeBlock   TimeBlock @relation(fields: [timeBlockId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model TimeBlock {
+  id           Int           @id @default(autoincrement())
+  startTime    DateTime
+  endTime      DateTime
+  appointments Appointment[]
 }

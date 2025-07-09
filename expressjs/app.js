@@ -98,7 +98,7 @@ app.put('/users/:id', (req, res) => {
           let users = JSON.parse(data);
           const validation = validateUser(updatedUser, users, userId);
           if (!validation.isValid) return res.status(400).json({ error: validation.error });
-          users = users.map(user => 
+          users = users.map(user =>
                user.id === userId ? { ...user, ...updatedUser } : user
           );
           fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), err => {
@@ -126,12 +126,12 @@ app.delete('/users/:id', (req, res) => {
 });
 
 // implementacion de error de midleware
-app.get('/error', (req, res, next)=>{
+app.get('/error', (req, res, next) => {
      next(new Error('error intencional'));
 });
 
 //conexion a base de datos
-app.get('/db-users', async (req, res)=>{
+app.get('/db-users', async (req, res) => {
      try {
           const users = await prisma.user.findMany();
           res.json(users);
@@ -141,12 +141,12 @@ app.get('/db-users', async (req, res)=>{
 });
 
 //implementacion de jwt
-app.get('/protected', authenticateToken, (req, res)=>{
+app.get('/protected', authenticateToken, (req, res) => {
      res.send('ruta protegida');
 });
 
-app.post('/register',async (req, res)=>{
-     const {email, password, name}=req.body;
+app.post('/register', async (req, res) => {
+     const { email, password, name } = req.body;
      const hashedPassword = await bcrypt.hash(password, 10);
      try {
           const newUser = await prisma.user.create({
@@ -154,20 +154,20 @@ app.post('/register',async (req, res)=>{
                     email: email,
                     password: hashedPassword,
                     name: name,
-                    role:'USER'
+                    role: 'USER'
                }
           });
-          res.status(201).json({message:'Usuario registrado correctamente'});
+          res.status(201).json({ message: 'Usuario registrado correctamente' });
      } catch (error) {
           res.status(500).json({ error: "Error al registrar el usuario" });
      }
 });
 
-app.post('/login', async (req, res)=>{
-     const {email, password}= req.body;
+app.post('/login', async (req, res) => {
+     const { email, password } = req.body;
      try {
           const getUser = await prisma.user.findUnique({
-               where:{ email: email}
+               where: { email: email }
           });
           const isValidPassword = await bcrypt.compare(password, getUser.password); // compara la contraseña ingresada con la almacenada
           if (!getUser && !isValidPassword) return res.status(400).json({ error: "Usuario o contraseña incorrecto" });
